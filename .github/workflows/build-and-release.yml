@@ -1,0 +1,138 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin
+            artifact_name: macos-build
+            file_extension: dmg
+          - os: ubuntu-latest
+            platform: linux
+            artifact_name: linux-build
+            file_extension: AppImage
+          - os: windows-latest
+            platform: win32
+            artifact_name: windows-build
+            file_extension: exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List build outputs
+        run: |
+          echo "Contents of dist directory:"
+          ls -la dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/*.${{ matrix.file_extension }}
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: |
+          echo "Artifact structure:"
+          find artifacts -type f -name "*"
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Find and copy macOS DMG
+          if [ -f artifacts/macos-build/*.dmg ]; then
+            cp artifacts/macos-build/*.dmg release-assets/SpoolEase-Filament-Scanner-macOS.dmg
+          fi
+          
+          # Find and copy Windows EXE
+          if [ -f artifacts/windows-build/*.exe ]; then
+            cp artifacts/windows-build/*.exe release-assets/SpoolEase-Filament-Scanner-Windows.exe
+          fi
+          
+          # Find and copy Linux AppImage
+          if [ -f artifacts/linux-build/*.AppImage ]; then
+            cp artifacts/linux-build/*.AppImage release-assets/SpoolEase-Filament-Scanner-Linux.AppImage
+          fi
+          
+          echo "Release assets prepared:"
+          ls -la release-assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: SpoolEase Filament Scanner ${{ github.ref_name }}
+          body: |
+            ## SpoolEase Filament Scanner ${{ github.ref_name }}
+            
+            Cross-platform Electron application to scan BambuStudio and OrcaSlicer filament JSON files.
+            
+            ### Downloads:
+            - **macOS**: Download the `.dmg` file
+            - **Windows**: Download the `.exe` file  
+            - **Linux**: Download the `.AppImage` file
+            
+            ### Features:
+            - Scans both BambuStudio and OrcaSlicer directories
+            - Deduplicates filament data by filament_id
+            - Sortable table view of all filaments
+            - CSV export functionality
+            - Cross-platform support
+            
+            ### Installation:
+            - **macOS**: Open the DMG and drag to Applications
+            - **Windows**: Run the installer EXE
+            - **Linux**: Make the AppImage executable (`chmod +x SpoolEase-Filament-Scanner-Linux.AppImage`) and run
+            
+            ### Usage:
+            1. Launch the application
+            2. It will automatically scan for BambuStudio and OrcaSlicer directories
+            3. View the filament table with all your filaments
+            4. Export to CSV for use in spreadsheets or other applications
+          draft: false
+          prerelease: false
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
