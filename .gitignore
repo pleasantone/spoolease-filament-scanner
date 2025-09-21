@@ -1,0 +1,51 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+dist/
+build/
+out/
+release/
+temp/
+
+# Electron-specific build outputs
+# If using Electron Forge
+.electron-forge/
+# If using electron-builder
+!*.app/
+!*.exe
+!*.dmg
+!*.deb
+!*.rpm
+!*.snap
+!*.pacman
+!*.tar.gz
+!*.zip
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.*.local
+
+# Log files
+*.log
+
+# Cache files
+.eslintcache
+.cache/
+
+# Test reports
+coverage/
+

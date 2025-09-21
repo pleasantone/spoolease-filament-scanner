@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  <title>Slicer Filament Scanner</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+      font-size: 24px;
+      font-weight: 300;
+    }
+
+    .status-container {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #007bff;
+    }
+
+    .status-label {
+      font-weight: 600;
+      color: #6c757d;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .status-text {
+      font-size: 16px;
+      color: #2c3e50;
+      line-height: 1.4;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .info-item {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+
+    .info-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .complete {
+      color: #28a745;
+    }
+
+    .complete::before {
+      content: "✓ ";
+      font-weight: bold;
+    }
+
+    .debug-container {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 10px;
+    }
+
+    .debug-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .debug-summary-item {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+    }
+
+    .debug-summary-item h4 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .debug-summary-item ul {
+      margin: 0;
+      padding-left: 15px;
+      font-size: 13px;
+    }
+
+    .debug-files {
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .debug-files table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .debug-files th,
+    .debug-files td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .debug-files th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .debug-files tr:hover {
+      background: #f8f9fa;
+    }
+
+    .slicer-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .slicer-bambustudio {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .slicer-orcaslicer {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .toggle-debug {
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .toggle-debug button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .toggle-debug button:hover {
+      background: #0056b3;
+    }
+
+    .filament-table-container {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 10px;
+    }
+
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .export-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .export-btn:hover {
+      background: #218838;
+    }
+
+    .table-count {
+      font-size: 12px;
+      color: #6c757d;
+      font-weight: 600;
+    }
+
+    .filament-table {
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+      max-height: 400px;
+      overflow: auto;
+    }
+
+    .filament-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .filament-table th,
+    .filament-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .filament-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+    }
+
+    .filament-table tr:hover {
+      background: #f8f9fa;
+    }
+
+    .filament-table td.temp-range {
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    .toggle-debug {
+      margin-top: 15px;
+      text-align: center;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .csv-dialog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .csv-dialog-content {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 80%;
+      max-height: 80%;
+      overflow: auto;
+    }
+
+    .csv-dialog h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+
+    .csv-dialog textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      font-size: 11px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px;
+      resize: vertical;
+    }
+
+    .csv-dialog-buttons {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .csv-dialog button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .csv-copy-btn {
+      background: #007bff;
+      color: white;
+    }
+
+    .csv-copy-btn:hover {
+      background: #0056b3;
+    }
+
+    .csv-close-btn {
+      background: #6c757d;
+      color: white;
+    }
+
+    .csv-close-btn:hover {
+      background: #545b62;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Slicer Filament Scanner</h1>
+    
+    <div class="status-container">
+      <div class="status-label">Status</div>
+      <div class="status-text" id="status">
+        <span class="loading"></span>
+        Initializing...
+      </div>
+    </div>
+
+    <div id="filamentTableSection">
+      <h2 style="margin: 30px 0 15px 0; font-size: 18px; color: #2c3e50;">Filament Summary Table</h2>
+      <div class="filament-table-container">
+        <div class="table-controls">
+          <button onclick="exportToCSV()" class="export-btn">Export to CSV</button>
+          <span id="tableCount" class="table-count">0 unique filaments</span>
+        </div>
+        <div class="filament-table" id="filamentTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let scanComplete = false;
+    let filamentTableData = [];
+
+    // Listen for status updates
+    window.electronAPI.onStatusUpdate((message) => {
+      const statusElement = document.getElementById('status');
+      
+      if (message.includes('complete')) {
+        statusElement.innerHTML = `<span class="complete">${message}</span>`;
+        scanComplete = true;
+      } else {
+        statusElement.innerHTML = `<span class="loading"></span>${message}`;
+      }
+    });
+
+    // Listen for scan completion with data
+    window.electronAPI.onScanComplete((data) => {
+      if (data.totalFiles > 0) {
+        processFilamentTable();
+      }
+    });
+
+    // Process filament data into deduplicated table
+    async function processFilamentTable() {
+      try {
+        const allData = await window.electronAPI.getFilamentData();
+        const filamentMap = new Map();
+        
+        // Process each filament file
+        Object.entries(allData).forEach(([key, data]) => {
+          const filamentId = data.filament_id;
+          if (!filamentId) return; // Skip if no filament_id
+          
+          // Clean filament_name by removing everything after @
+          let filamentName = data.filament_name || data.name || '';
+          const atIndex = filamentName.indexOf('@');
+          if (atIndex !== -1) {
+            filamentName = filamentName.substring(0, atIndex).trim();
+          }
+          
+          const filamentData = {
+            filament_id: filamentId,
+            filament_name: filamentName,
+            nozzle_temperature_range_low: data.nozzle_temperature_range_low || data.nozzle_temperature_range?.[0] || '',
+            nozzle_temperature_range_high: data.nozzle_temperature_range_high || data.nozzle_temperature_range?.[1] || '',
+            filament_type: data.filament_type || data.type || ''
+          };
+          
+          // Deduplicate by filament_id
+          if (!filamentMap.has(filamentId)) {
+            filamentMap.set(filamentId, filamentData);
+          }
+        });
+        
+        // Convert to array and sort by filament_name
+        filamentTableData = Array.from(filamentMap.values()).sort((a, b) => 
+          a.filament_name.localeCompare(b.filament_name)
+        );
+        
+        // Update table display
+        updateFilamentTable();
+        
+      } catch (error) {
+        console.error('Error processing filament table:', error);
+      }
+    }
+
+    // Update the filament table display
+    function updateFilamentTable() {
+      const tableHtml = `
+        <table>
+          <thead>
+            <tr>
+              <th>Filament ID</th>
+              <th>Filament Name</th>
+              <th>Temp Low</th>
+              <th>Temp High</th>
+              <th>Filament Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filamentTableData.map(filament => `
+              <tr>
+                <td style="font-family: monospace;">${filament.filament_id}</td>
+                <td>${filament.filament_name}</td>
+                <td class="temp-range">${filament.nozzle_temperature_range_low}°C</td>
+                <td class="temp-range">${filament.nozzle_temperature_range_high}°C</td>
+                <td>${filament.filament_type}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      
+      document.getElementById('filamentTable').innerHTML = tableHtml;
+      document.getElementById('tableCount').textContent = `${filamentTableData.length} unique filaments`;
+    }
+
+    // Export to CSV and show dialog
+    function exportToCSV() {
+      const headers = ['filament_id', 'filament_name', 'nozzle_temperature_range_low', 'nozzle_temperature_range_high', 'filament_type'];
+      const csvContent = filamentTableData.map(row => 
+        headers.map(header => {
+          const value = row[header] || '';
+          // Escape quotes and wrap in quotes if contains comma or quote
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return '"' + value.replace(/"/g, '""') + '"';
+          }
+          return value;
+        }).join(',')
+      ).join('\n');
+      
+      showCSVDialog(csvContent);
+    }
+
+    // Show CSV export dialog
+    function showCSVDialog(csvContent) {
+      const dialog = document.createElement('div');
+      dialog.className = 'csv-dialog';
+      dialog.innerHTML = `
+        <div class="csv-dialog-content">
+          <h3>Export CSV Data</h3>
+          <p>Copy the CSV data below to your clipboard:</p>
+          <textarea id="csvTextarea" readonly>${csvContent}</textarea>
+          <div class="csv-dialog-buttons">
+            <button class="csv-copy-btn" onclick="copyCSVToClipboard()">Copy to Clipboard</button>
+            <button class="csv-close-btn" onclick="closeCSVDialog()">Close</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(dialog);
+      
+      // Select all text in textarea
+      const textarea = document.getElementById('csvTextarea');
+      textarea.select();
+    }
+
+    // Copy CSV to clipboard
+    function copyCSVToClipboard() {
+      const textarea = document.getElementById('csvTextarea');
+      textarea.select();
+      document.execCommand('copy');
+      
+      // Visual feedback
+      const copyBtn = document.querySelector('.csv-copy-btn');
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      copyBtn.style.background = '#28a745';
+      
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.background = '#007bff';
+      }, 2000);
+    }
+
+    // Close CSV dialog
+    function closeCSVDialog() {
+      const dialog = document.querySelector('.csv-dialog');
+      if (dialog) {
+        document.body.removeChild(dialog);
+      }
+    }
+
+    // Update debug view with filament data
+    async function updateDebugView() {
+      try {
+        const summary = await window.electronAPI.getFilamentSummary();
+        
+        // Update summary section
+        const summaryHtml = `
+          <div class="debug-summary-item">
+            <h4>By Slicer</h4>
+            <ul>
+              ${Object.entries(summary.bySource).map(([slicer, count]) => 
+                `<li>${slicer}: ${count} files</li>`
+              ).join('')}
+            </ul>
+          </div>
+          <div class="debug-summary-item">
+            <h4>By Subdirectory</h4>
+            <ul>
+              ${Object.entries(summary.bySubdirectory).slice(0, 5).map(([subdir, count]) => 
+                `<li>${subdir}: ${count} files</li>`
+              ).join('')}
+              ${Object.keys(summary.bySubdirectory).length > 5 ? '<li>... and more</li>' : ''}
+            </ul>
+          </div>
+        `;
+        
+        document.getElementById('debugSummary').innerHTML = summaryHtml;
+        
+        // Update files table
+        const filesHtml = `
+          <table>
+            <thead>
+              <tr>
+                <th>Slicer</th>
+                <th>Subdirectory</th>
+                <th>Filename</th>
+                <th>Filament Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${summary.files.slice(0, 20).map(file => `
+                <tr>
+                  <td><span class="slicer-badge slicer-${file.slicer.toLowerCase()}">${file.slicer}</span></td>
+                  <td>${file.subdirectory}</td>
+                  <td>${file.filename}</td>
+                  <td>${file.name}</td>
+                </tr>
+              `).join('')}
+              ${summary.files.length > 20 ? `
+                <tr>
+                  <td colspan="4" style="text-align: center; color: #6c757d; font-style: italic;">
+                    ... and ${summary.files.length - 20} more files
+                  </td>
+                </tr>
+              ` : ''}
+            </tbody>
+          </table>
+        `;
+        
+        document.getElementById('debugFiles').innerHTML = filesHtml;
+        
+      } catch (error) {
+        console.error('Error updating debug view:', error);
+      }
+    }
+
+    // Optional: Add click handler to view loaded data (for debugging)
+    document.addEventListener('dblclick', async () => {
+      const data = await window.electronAPI.getFilamentData();
+      console.log('Loaded filament data:', data);
+    });
+
+    // Toggle debug view
+    function toggleDebugView() {
+      const debugSection = document.getElementById('debugSection');
+      const isVisible = debugSection.style.display !== 'none';
+      
+      if (!isVisible && scanComplete) {
+        updateDebugView();
+        debugSection.style.display = 'block';
+      } else {
+        debugSection.style.display = 'none';
+      }
+    }
+
+    // Initialize file count update
+    window.electronAPI.getFilamentCount().then(count => {
+      if (count > 0) {
+        document.getElementById('fileCount').textContent = count;
+        processFilamentTable();
+      }
+    }).catch(err => {
+      console.log('File count not yet available:', err);
+    });
+  </script>
+</body>
+</html>

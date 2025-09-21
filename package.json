@@ -1,0 +1,44 @@
+{
+  "name": "slicer-filament-scanner",
+  "version": "1.0.0",
+  "description": "Electron app to scan BambuStudio and OrcaSlicer filament JSON files",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "keywords": [
+    "electron",
+    "bambustudio",
+    "orcaslicer",
+    "filament"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^38.1.2",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.yourname.slicer-filament-scanner",
+    "productName": "Slicer Filament Scanner",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
